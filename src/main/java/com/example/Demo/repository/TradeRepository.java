@@ -11,5 +11,7 @@ import com.example.Demo.model.TradeOrder;
 @Repository
 public interface TradeRepository extends ElasticsearchRepository<TradeOrder, String> {
     List<TradeOrder> findBySymbol(String symbol);
-    List<TradeOrder> findByDateAndSymbol(String symbol, LocalDateTime date);
+    List<TradeOrder> findByDateBetweenAndSymbol(LocalDateTime from, LocalDateTime to, String symbol);
+    List<TradeOrder> findByDateBetweenAndSymbolOrderByVolumeDesc(LocalDateTime from, LocalDateTime to, String symbol);
+
 }

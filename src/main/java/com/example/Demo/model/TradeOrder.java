@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 @Data
 public class TradeOrder {
     @Id
-    private Long id;
+    private String id;
 
     @Field(type= FieldType.Keyword)
     private String symbol;

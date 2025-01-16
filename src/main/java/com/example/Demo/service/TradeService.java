@@ -9,5 +9,6 @@ public interface TradeService {
     public TradeOrder createOrder(TradeOrder order);
     public Iterable<TradeOrder> listOrders();
     public List<TradeOrder> findBySymbol(String symbol);
-    public List<TradeOrder> findByDateAndSymbol(String symbol, LocalDateTime date);
+    public List<TradeOrder> findByDateRangeAndSymbol(LocalDateTime start, LocalDateTime end, String symbol);
+    public List<TradeOrder> findBySymbolAndVolumeLessThan(int volume, String symbol);
 }

@@ -1,6 +1,7 @@
 package com.example.Demo.config;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,6 +11,7 @@ import java.util.Set;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -22,6 +24,7 @@ import com.example.Demo.model.TradeOrder;
 import com.example.Demo.service.TradeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders;
 import reactor.core.publisher.Mono;
 
 @Configuration
@@ -35,11 +38,13 @@ public class SchedulerConfig {
     @Autowired
     TradeService tradeService;
 
+    @Value(value="${spring.api.apiKey:demo}")
+    private String apiKey;
+
     @Scheduled(fixedDelay = 1000000) // duration between the end of the last execution and the start of the next execution is fixed
     public void scheduleFixedDelayTask() {
         String type = "TIME_SERIES_INTRADAY";
-        String symbol = "IBM";
-        String apiKey = "demo";
+        String symbol = "META";
         String interval = "5min";
         String url = "https://www.alphavantage.co";
         WebClient client = WebClient.builder()
@@ -57,8 +62,8 @@ public class SchedulerConfig {
                 .bodyToMono(Map.class)
                 .onErrorResume(e -> Mono.empty())
                 .block();
-        Map<String, Object> tradeOrders = oneDayTrade(res);
-        List<TradeOrder> orders = collectOrders(tradeOrders, "META");
+        Map<String, Object> tradeOrders = ObtainTradeOrders(res, symbol);
+        List<TradeOrder> orders = collectOrders(tradeOrders, symbol);
         for(TradeOrder order: orders) {
             tradeService.createOrder(order);
         }
@@ -67,21 +72,21 @@ public class SchedulerConfig {
                 "Fixed delay task - " + System.currentTimeMillis() / 1000);
     }
 
-    public Map<String, Object> oneDayTrade(Map<String, Object> res) {
-        Map<String, String> meta = (Map<String, String>) res.get(metaData);
-        String latestDate = meta.get(latest);
+    public Map<String, Object> ObtainTradeOrders(Map<String, Object> res, String symbol) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        LocalDateTime latestDateTime = LocalDateTime.parse(latestDate, formatter);
-        Map<String, Object> tradeOrdersToday = new HashMap<>();
+        Map<String, Object> tradeOrders = new HashMap<>();
         Map<String, Object> tradeData = (Map<String, Object>) res.get(timeSeries);
         Set<String> dates = tradeData.keySet();
         for(String date: dates) {
             LocalDateTime dateTime = LocalDateTime.parse(date,formatter);
-            if (dateTime.toLocalDate().equals(latestDateTime.toLocalDate())) {
-                tradeOrdersToday.put(date, tradeData.get(date));
+            LocalDateTime startOfDay = dateTime.with(LocalTime.MIN);
+            LocalDateTime endOfDay = dateTime.with(LocalTime.MAX);
+            List<TradeOrder> orderExist = tradeService.findByDateRangeAndSymbol(startOfDay, endOfDay, symbol);
+            if (orderExist.size() == 0) {
+                tradeOrders.put(date, tradeData.get(date));
             }
         }
-        return tradeOrdersToday;
+        return tradeOrders;
     }
 
     public List<TradeOrder> collectOrders(Map<String, Object> res, String symbol) {
@@ -105,6 +110,5 @@ public class SchedulerConfig {
             }
         }
         return lst;
-
     }
 }
