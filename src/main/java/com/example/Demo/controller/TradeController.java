@@ -30,6 +30,7 @@ public class TradeController {
     }
 
     @GetMapping
+    @RequestMapping("/range")
     public CommonResult<List<TradeOrder>> getTradeOrderByRange(@RequestParam String start, @RequestParam String end, @RequestParam String symbol) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
         LocalDateTime startDateTime = LocalDateTime.parse(start, formatter);
@@ -40,7 +41,7 @@ public class TradeController {
 
     //TODO Test this endpoint
     @GetMapping
-    @RequestMapping("/volume")
+    @RequestMapping("/volume/less")
     public CommonResult<List<TradeOrder>> getTradeOrderWithVolumeLessThan(@RequestParam String start, @RequestParam String end, @RequestParam String symbol, @RequestParam Integer volume) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
         LocalDateTime startDateTime = LocalDateTime.parse(start, formatter);
@@ -51,7 +52,7 @@ public class TradeController {
 
     //TODO Retrieve the trade order with the highest volume for a given symbol within a date range
     @GetMapping
-    @RequestMapping("/volume")
+    @RequestMapping("/volume/highest")
     public CommonResult<TradeOrder> getHighestVolumeTradeOrder(@RequestParam String start, @RequestParam String end, @RequestParam String symbol) {
         TradeOrder order = new TradeOrder();
         return CommonResult.success(order, "Trade orders successfully retrieved");
@@ -67,6 +68,7 @@ public class TradeController {
 
     //TODO Find trades with significant price movements
     @GetMapping
+    @RequestMapping("/significant")
     public CommonResult<TradeOrder> getTradesWithSignificantPriceMovements(@RequestParam Integer threshold, @RequestParam String symbol) {
         TradeOrder order = new TradeOrder();
         return CommonResult.success(order, "Trade orders successfully retrieved");

@@ -59,4 +59,5 @@ public class MessageController {
         });
         return "Message published";
     }
+
 }

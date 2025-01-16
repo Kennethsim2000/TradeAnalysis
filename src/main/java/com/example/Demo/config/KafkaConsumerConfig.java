@@ -15,6 +15,7 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 import com.example.Demo.model.Greeting;
+import com.example.Demo.model.TradeOrder;
 
 @EnableKafka // enables detection of @kafkaListener annotations on any spring managed bean
 @Configuration
@@ -29,7 +30,6 @@ public class KafkaConsumerConfig {
     public ConsumerFactory<String, String> consumerFactory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
-//        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         // default groupId used if there is no groupId(or id) on the @KafkaListener
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
@@ -48,6 +48,16 @@ public class KafkaConsumerConfig {
     }
 
     @Bean
+    public ConsumerFactory<String, TradeOrder> tradeConsumerFactory() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new JsonDeserializer<>(TradeOrder.class));
+    }
+
+    @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Greeting> greetingConcurrentKafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, Greeting> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(greetingConsumerFactory());
@@ -59,6 +69,13 @@ public class KafkaConsumerConfig {
     public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
+        return factory;
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, TradeOrder> tradeConcurrentKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, TradeOrder> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(tradeConsumerFactory());
         return factory;
     }
 

@@ -25,8 +25,14 @@ public class KafkaTopicConfig {
     }
 
     @Bean
-    public NewTopic topic1() {
+    public NewTopic tweetTopic() {
         return new NewTopic("tweets", 1, (short) 1);
+        // takes in (String name, int numPartitions, short replicationFactor)
+    }
+
+    @Bean
+    public NewTopic tradeTopic() {
+        return new NewTopic("trade", 1, (short) 1);
         // takes in (String name, int numPartitions, short replicationFactor)
     }
 

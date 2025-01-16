@@ -1,9 +1,12 @@
 package com.example.Demo.listener;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 import com.example.Demo.model.Greeting;
+import com.example.Demo.model.TradeOrder;
+import com.example.Demo.service.TradeService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -16,6 +19,9 @@ public class Listener {
     //spring managed container that allows concurrent processing of messages from kafka topics by managing multiple kafka
     //consumer threads.
 
+    @Autowired
+    TradeService tradeService;
+
     //@KafkaListener is used to designate a bean method as a listener for a listener container
     @KafkaListener(topics = "tweets", groupId = "group1", containerFactory = "kafkaListenerContainerFactory")
     public void listen(String data) {
@@ -25,6 +31,12 @@ public class Listener {
     @KafkaListener(topics = "tweets", groupId = "group1", containerFactory = "greetingConcurrentKafkaListenerContainerFactory")
     public void greetingListener(Greeting greeting) {
         log.info("greeting " + greeting);
+    }
+
+    @KafkaListener(topics = "trade", groupId = "group1", containerFactory = "tradeConcurrentKafkaListenerContainerFactory")
+    public void greetingListener(TradeOrder trade) {
+        log.info("greeting " + trade);
+        tradeService.createOrder(trade);
     }
 }
 

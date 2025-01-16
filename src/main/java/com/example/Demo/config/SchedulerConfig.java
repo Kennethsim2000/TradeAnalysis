@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,25 +16,32 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.example.Demo.model.Greeting;
 import com.example.Demo.model.OrderData;
 import com.example.Demo.model.TradeOrder;
 import com.example.Demo.service.TradeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 @Configuration
 @EnableScheduling
+@Slf4j
 public class SchedulerConfig {
 
     final String timeSeries = "Time Series (5min)";
     final String metaData = "Meta Data";
     final String latest = "3. Last Refreshed";
+    private static final String TOPIC = "trade";
+
 
     @Autowired
     TradeService tradeService;
@@ -41,35 +49,42 @@ public class SchedulerConfig {
     @Value(value="${spring.api.apiKey:demo}")
     private String apiKey;
 
+    @Autowired
+    KafkaTemplate<String, TradeOrder> tradeKafkaTemplate;
+
     @Scheduled(fixedDelay = 1000000) // duration between the end of the last execution and the start of the next execution is fixed
     public void scheduleFixedDelayTask() {
         String type = "TIME_SERIES_INTRADAY";
         String symbol = "META";
         String interval = "5min";
+        Map<String, Object> res = queryTradeOrders(type, symbol, interval);
+        Map<String, Object> tradeOrders = ObtainTradeOrders(res, symbol);
+        List<TradeOrder> orders = collectOrders(tradeOrders, symbol);
+        for(TradeOrder order: orders) {
+            publishTrade(order);
+        }
+        System.out.println(
+                "Fixed delay task - " + System.currentTimeMillis() / 1000);
+    }
+
+    public Map<String, Object> queryTradeOrders(String type, String symbol, String interval) {
         String url = "https://www.alphavantage.co";
         WebClient client = WebClient.builder()
                 .baseUrl(url)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
         Map<String, Object> res = client.get().uri(builder->builder
-                .path("/query")
-                .queryParam("function", type)
-                .queryParam("symbol", symbol)
-                .queryParam("interval", interval)
-                .queryParam("apikey", apiKey)
-                .build())
+                        .path("/query")
+                        .queryParam("function", type)
+                        .queryParam("symbol", symbol)
+                        .queryParam("interval", interval)
+                        .queryParam("apikey", apiKey)
+                        .build())
                 .retrieve()
                 .bodyToMono(Map.class)
                 .onErrorResume(e -> Mono.empty())
                 .block();
-        Map<String, Object> tradeOrders = ObtainTradeOrders(res, symbol);
-        List<TradeOrder> orders = collectOrders(tradeOrders, symbol);
-        for(TradeOrder order: orders) {
-            tradeService.createOrder(order);
-        }
-        System.out.println(orders);
-        System.out.println(
-                "Fixed delay task - " + System.currentTimeMillis() / 1000);
+        return res;
     }
 
     public Map<String, Object> ObtainTradeOrders(Map<String, Object> res, String symbol) {
@@ -110,5 +125,19 @@ public class SchedulerConfig {
             }
         }
         return lst;
+    }
+
+    public String publishTrade(TradeOrder order)
+    {
+        CompletableFuture<SendResult<String, TradeOrder>> future = tradeKafkaTemplate.send(TOPIC, order);
+        String res = "";
+        future.whenComplete((result, ex)-> {
+            if(ex == null) {
+                log.info("Message successfully published");
+            } else {
+                log.error(ex.getMessage());
+            }
+        });
+        return "Message published";
     }
 }
