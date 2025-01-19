@@ -34,8 +34,8 @@ public class Listener {
     }
 
     @KafkaListener(topics = "trade", groupId = "group1", containerFactory = "tradeConcurrentKafkaListenerContainerFactory")
-    public void greetingListener(TradeOrder trade) {
-        log.info("greeting " + trade);
+    public void tradeListener(TradeOrder trade) {
+        log.info("Trade " + trade);
         tradeService.createOrder(trade);
     }
 }

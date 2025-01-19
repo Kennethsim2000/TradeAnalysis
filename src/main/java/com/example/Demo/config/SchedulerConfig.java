@@ -52,7 +52,7 @@ public class SchedulerConfig {
     @Autowired
     KafkaTemplate<String, TradeOrder> tradeKafkaTemplate;
 
-    @Scheduled(fixedDelay = 1000000) // duration between the end of the last execution and the start of the next execution is fixed
+    @Scheduled(fixedRate = 86400000)// duration between the end of the last execution and the start of the next execution is fixed
     public void scheduleFixedDelayTask() {
         String type = "TIME_SERIES_INTRADAY";
         String symbol = "META";

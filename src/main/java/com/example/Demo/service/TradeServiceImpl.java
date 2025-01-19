@@ -1,21 +1,29 @@
 package com.example.Demo.service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.elasticsearch.client.elc.ElasticsearchAggregation;
+import org.springframework.data.elasticsearch.client.elc.ElasticsearchAggregations;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.query.BaseQuery;
+import org.springframework.data.elasticsearch.core.query.ScriptedField;
 import org.springframework.stereotype.Service;
 
 import com.example.Demo.model.TradeOrder;
 import com.example.Demo.repository.TradeRepository;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
+import co.elastic.clients.elasticsearch._types.aggregations.StatsAggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.StatsAggregation;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.query_dsl.RangeQuery;
@@ -44,10 +52,6 @@ public class TradeServiceImpl implements TradeService {
         return tradeRepository.save(order);
     }
 
-    @Override
-    public Iterable<TradeOrder> listOrders() {
-        return tradeRepository.findAll();
-    }
 
     /**
      * Retrieves trade orders that match the given stock symbol
@@ -104,6 +108,46 @@ public class TradeServiceImpl implements TradeService {
             res.add(order);
         }
         return res;
+    }
+
+    /**
+     *
+     * @param start
+     * @param end
+     * @param symbol
+     * @return
+     */
+    @Override
+    public StatsAggregate computeAggregation(LocalDateTime start, LocalDateTime end, String symbol) {
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
+        String startDate = start.format(dateTimeFormatter);
+        String endDate = end.format(dateTimeFormatter);
+        Query queryByDate = RangeQuery.of(r -> r
+                .field("date")
+                .gte(JsonData.of(startDate)).lte(JsonData.of(endDate)))
+                ._toQuery();
+        Query queryBySymbol = TermQuery.of(t -> t
+                .field("symbol")
+                .value(symbol))._toQuery();
+        List<Query> queries = new ArrayList<>();
+        queries.add(queryByDate);
+        queries.add(queryBySymbol);
+        Query boolQuery = BoolQuery.of(b->b.must(queries))._toQuery();
+        StatsAggregation aggregate = StatsAggregation.of(b-> b.field("volume"));
+        Aggregation aggregation = aggregate._toAggregation();
+        BaseQuery query = NativeQuery.builder()
+                .withQuery(boolQuery)
+                .withAggregation("statistics", aggregation)
+                .build();
+        SearchHits<TradeOrder> searchHits = elasticSearchTemplate.search(query, TradeOrder.class);
+        ElasticsearchAggregations aggregations = (ElasticsearchAggregations) searchHits.getAggregations();
+        Map<String, ElasticsearchAggregation> map = aggregations.aggregationsAsMap();
+        StatsAggregate aggregationRes = map.get("statistics").aggregation().getAggregate().stats();
+        return aggregationRes;
+    }
+
+    public void compute(LocalDateTime start, LocalDateTime end, String symbol) {
+//        ScriptedField field = ScriptedField.of()
     }
 
 }

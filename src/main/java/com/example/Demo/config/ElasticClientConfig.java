@@ -7,6 +7,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
@@ -24,7 +27,7 @@ public class ElasticClientConfig  {
             return new ElasticsearchClient(
                     new RestClientTransport(
                             restClient,
-                            new JacksonJsonpMapper()
+                            new JacksonJsonpMapper(new ObjectMapper().registerModule(new JavaTimeModule()))
                     )
             );
         }

@@ -96,4 +96,21 @@ Retrieve trades filtered by symbol, time range, and a maximum trade volume.
 http://localhost:8080/api/trade/volume/less?start=2025-01-14 00:00&end=2025-01-15 23:59&symbol=META&volume=200
 ```
 
+#### Request
+
+- **URL**: `/api/trade/aggregate`
+- **Method**: `GET`
+### **Query Parameters**
+
+| Parameter | Type                        | Required | Description                                                      | Example                 |
+|-----------|-----------------------------|----------|------------------------------------------------------------------|-------------------------|
+| `symbol`  | `string`                    | Yes      | The trade symbol to filter (e.g., `META`, `AAPL`).               | `META`                 |
+| `start`   | `string` (ISO 8601 DateTime) | Yes      | The start of the time range in `YYYY-MM-DD HH:mm` format.         | `2025-01-14 00:00`     |
+| `end`     | `string` (ISO 8601 DateTime) | Yes      | The end of the time range in `YYYY-MM-DD HH:mm` format.           | `2025-01-15 23:59`     |
+---
+
+#### **Example Request**
+```http
+http://localhost:8080/api/trade/aggregate?start=2025-01-17 00:00&end=2025-01-17 23:59&symbol=META
+```
 

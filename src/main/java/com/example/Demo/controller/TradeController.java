@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.Demo.config.CommonResult;
 import com.example.Demo.model.TradeOrder;
 import com.example.Demo.service.TradeService;
+import com.example.Demo.vo.StatsVo;
 
+import co.elastic.clients.elasticsearch._types.aggregations.StatsAggregate;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
@@ -39,7 +41,6 @@ public class TradeController {
         return CommonResult.success(orders, "Trade orders successfully retrieved");
     }
 
-    //TODO Test this endpoint
     @GetMapping
     @RequestMapping("/volume/less")
     public CommonResult<List<TradeOrder>> getTradeOrderWithVolumeLessThan(@RequestParam String start, @RequestParam String end, @RequestParam String symbol, @RequestParam Integer volume) {
@@ -77,8 +78,17 @@ public class TradeController {
     //TODO Aggregation to get statistics about trading volume
     @GetMapping
     @RequestMapping("/aggregate")
-    public CommonResult<TradeOrder> aggregation(@RequestParam String symbol) {
-        TradeOrder order = new TradeOrder();
-        return CommonResult.success(order, "Trade orders successfully retrieved");
+    public CommonResult<StatsVo> aggregation(@RequestParam String start, @RequestParam String end, @RequestParam String symbol) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        LocalDateTime startDateTime = LocalDateTime.parse(start, formatter);
+        LocalDateTime endDateTime = LocalDateTime.parse(end, formatter);
+        StatsAggregate aggregate = tradeService.computeAggregation(startDateTime, endDateTime, symbol);
+        StatsVo vo = new StatsVo();
+        vo.setCount(aggregate.count());
+        vo.setAvg(aggregate.avg());
+        vo.setMax(aggregate.max());
+        vo.setMin(aggregate.min());
+        vo.setSum(aggregate.sum());
+        return CommonResult.success(vo, "Aggregation retrieved");
     }
 }
