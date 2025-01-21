@@ -13,4 +13,5 @@ public interface TradeService {
     public List<TradeOrder> findByDateRangeAndSymbol(LocalDateTime start, LocalDateTime end, String symbol);
     public List<TradeOrder> findBySymbolAndVolumeLessThan(int volume, String symbol);
     public StatsAggregate computeAggregation(LocalDateTime start, LocalDateTime end, String symbol);
+    public List<TradeOrder>  getSignificantPriceDifferences(Integer threshold, String symbol);
 }

@@ -70,12 +70,11 @@ public class TradeController {
     //TODO Find trades with significant price movements
     @GetMapping
     @RequestMapping("/significant")
-    public CommonResult<TradeOrder> getTradesWithSignificantPriceMovements(@RequestParam Integer threshold, @RequestParam String symbol) {
-        TradeOrder order = new TradeOrder();
-        return CommonResult.success(order, "Trade orders successfully retrieved");
+    public CommonResult<List<TradeOrder>> getTradesWithSignificantPriceMovements(@RequestParam Integer threshold, @RequestParam String symbol) {
+        List<TradeOrder> orders = tradeService.getSignificantPriceDifferences(threshold, symbol);
+        return CommonResult.success(orders, "Trade orders with significant difference between high and low successfully retrieved");
     }
 
-    //TODO Aggregation to get statistics about trading volume
     @GetMapping
     @RequestMapping("/aggregate")
     public CommonResult<StatsVo> aggregation(@RequestParam String start, @RequestParam String end, @RequestParam String symbol) {
