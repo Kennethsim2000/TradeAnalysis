@@ -74,7 +74,7 @@ GET http://localhost:8080/api/trade/range?symbol=META&start=2025-01-15 00:00&end
 
 ### **GET /api/trade/volume/less**
 
-Retrieve trades filtered by symbol, time range, and a maximum trade volume.
+Retrieve trade orders filtered by symbol, time range, and a maximum trade volume.
 
 #### Request
 
@@ -93,8 +93,11 @@ Retrieve trades filtered by symbol, time range, and a maximum trade volume.
 
 #### **Example Request**
 ```http
-http://localhost:8080/api/trade/volume/less?start=2025-01-14 00:00&end=2025-01-15 23:59&symbol=META&volume=200
+GET http://localhost:8080/api/trade/volume/less?start=2025-01-14 00:00&end=2025-01-15 23:59&symbol=META&volume=200
 ```
+### **GET /api/trade/aggregate**
+
+Retrieve aggregated statistics on trade volume filtered by symbol and time range.
 
 #### Request
 
@@ -111,11 +114,12 @@ http://localhost:8080/api/trade/volume/less?start=2025-01-14 00:00&end=2025-01-1
 
 #### **Example Request**
 ```http
-http://localhost:8080/api/trade/aggregate?start=2025-01-17 00:00&end=2025-01-17 23:59&symbol=META
+GET http://localhost:8080/api/trade/aggregate?start=2025-01-17 00:00&end=2025-01-17 23:59&symbol=META
 ```
-### **GET /api/trade/volume/less**
 
-Retrieve trades filtered by symbol and difference between high and low
+### **GET /api/trade/significant**
+
+Retrieve trade orders where the price difference (high - low) exceeds a specified threshold.
 
 #### Request
 
@@ -131,5 +135,25 @@ Retrieve trades filtered by symbol and difference between high and low
 
 #### **Example Request**
 ```http
-http://localhost:8080/api/trade/significant?threshold=10&symbol=META
+GET http://localhost:8080/api/trade/significant?threshold=10&symbol=META
+```
+
+### **GET /api/trade/volume**
+
+Retrieve a daily trade volume histogram, calculating the total volume traded for each day.
+
+#### Request
+
+- **URL**: `/api/trade/volume`
+- **Method**: `GET`
+### **Query Parameters**
+
+| Parameter | Type     | Required | Description                                      | Example                 |
+|-----------|----------|----------|--------------------------------------------------|-------------------------|
+| `symbol`  | `string` | Yes      | The trade symbol to filter (e.g., `META`, `AAPL`). | `META`                 |
+---
+
+#### **Example Request**
+```http
+GET http://localhost:8080/api/trade/volume?symbol=META
 ```

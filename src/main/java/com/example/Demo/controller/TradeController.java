@@ -3,6 +3,7 @@ package com.example.Demo.controller;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,7 +16,10 @@ import com.example.Demo.model.TradeOrder;
 import com.example.Demo.service.TradeService;
 import com.example.Demo.vo.StatsVo;
 
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
 import co.elastic.clients.elasticsearch._types.aggregations.StatsAggregate;
+import co.elastic.clients.json.JsonData;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
@@ -62,12 +66,18 @@ public class TradeController {
     //TODO Find the time period with the largest difference between high and low prices for a given symbol within a date range
     @GetMapping
     @RequestMapping("/volatile")
-    public CommonResult<TradeOrder> getMostVolatilePeriod(@RequestParam String start, @RequestParam String end, @RequestParam String symbol) {
-        TradeOrder order = new TradeOrder();
-        return CommonResult.success(order, "Trade orders successfully retrieved");
+    public CommonResult<Map<String, Double>> getMostVolatilePeriod(@RequestParam String symbol) {
+        Map<String, Double> res = tradeService.getVolumeTradedPerDay(symbol);
+        return CommonResult.success(res, "Trade orders successfully retrieved");
     }
 
-    //TODO Find trades with significant price movements
+    @GetMapping
+    @RequestMapping("/volume")
+    public CommonResult<Map<String, Double>> getVolumePerDay(@RequestParam String symbol) {
+        Map<String, Double> res = tradeService.getVolumeTradedPerDay(symbol);
+        return CommonResult.success(res, "Volume per day successfully retrieved");
+    }
+
     @GetMapping
     @RequestMapping("/significant")
     public CommonResult<List<TradeOrder>> getTradesWithSignificantPriceMovements(@RequestParam Integer threshold, @RequestParam String symbol) {
