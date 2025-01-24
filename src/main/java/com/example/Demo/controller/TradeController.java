@@ -63,11 +63,10 @@ public class TradeController {
         return CommonResult.success(order, "Trade orders successfully retrieved");
     }
 
-    //TODO Find the time period with the largest difference between high and low prices for a given symbol within a date range
     @GetMapping
     @RequestMapping("/volatile")
-    public CommonResult<Map<String, Double>> getMostVolatilePeriod(@RequestParam String symbol) {
-        Map<String, Double> res = tradeService.getVolumeTradedPerDay(symbol);
+    public CommonResult<Map<String, Object> > getMostVolatilePeriod(@RequestParam String symbol) {
+        Map<String, Object> res = tradeService.getMostSignificantPriceDifferencesPerDay(symbol);
         return CommonResult.success(res, "Trade orders successfully retrieved");
     }
 

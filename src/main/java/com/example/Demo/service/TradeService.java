@@ -16,6 +16,6 @@ public interface TradeService {
     public List<TradeOrder> findBySymbolAndVolumeLessThan(int volume, String symbol);
     public StatsAggregate computeAggregation(LocalDateTime start, LocalDateTime end, String symbol);
     public List<TradeOrder>  getSignificantPriceDifferences(Integer threshold, String symbol);
-    public Aggregate getMostSignificantPriceDifferencesPerDay(String symbol);
+    public  Map<String, Object>  getMostSignificantPriceDifferencesPerDay(String symbol);
     public Map<String, Double> getVolumeTradedPerDay(String symbol);
 }

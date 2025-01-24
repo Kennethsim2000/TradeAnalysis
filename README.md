@@ -157,3 +157,22 @@ Retrieve a daily trade volume histogram, calculating the total volume traded for
 ```http
 GET http://localhost:8080/api/trade/volume?symbol=META
 ```
+
+### **GET /api/trade/volatile**
+
+Retrieve the most significant price differences per day for a given trade symbol, including the high, low, date, and volume for each day with the largest price difference.
+#### Request
+
+- **URL**: `/api/trade/volatile`
+- **Method**: `GET`
+### **Query Parameters**
+
+| Parameter | Type     | Required | Description                                      | Example                 |
+|-----------|----------|----------|--------------------------------------------------|-------------------------|
+| `symbol`  | `string` | Yes      | The trade symbol to filter (e.g., `META`, `AAPL`). | `META`                 |
+---
+
+#### **Example Request**
+```http
+GET http://localhost:8080/api/trade/volatile?symbol=META
+```

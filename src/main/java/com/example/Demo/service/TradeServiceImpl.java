@@ -22,12 +22,12 @@ import com.example.Demo.repository.TradeRepository;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.Script;
-import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
 import co.elastic.clients.elasticsearch._types.aggregations.CalendarInterval;
 import co.elastic.clients.elasticsearch._types.aggregations.DateHistogramAggregate;
 import co.elastic.clients.elasticsearch._types.aggregations.DateHistogramAggregation;
 import co.elastic.clients.elasticsearch._types.aggregations.DateHistogramBucket;
+import co.elastic.clients.elasticsearch._types.aggregations.ScriptedMetricAggregate;
 import co.elastic.clients.elasticsearch._types.aggregations.ScriptedMetricAggregation;
 import co.elastic.clients.elasticsearch._types.aggregations.StatsAggregate;
 import co.elastic.clients.elasticsearch._types.aggregations.StatsAggregation;
@@ -196,37 +196,60 @@ public class TradeServiceImpl implements TradeService {
         return res;
     }
 
-    //TODO: Complete DateHistogram and scriptedMetricAggregation to get the most significant price differences per day
+
+    /**
+     *
+     * @param symbol The stock symbol to filter documents by (e.g. META).
+     * @return A map where the keys are dates (as strings) and the values are the data
+     *         for the day with the most significant price difference. The data includes:
+     *         - high: The highest price at that timeslot.
+     *         - low: The lowest price at that timeslot.
+     *         - date: The datetime for the given bucket.
+     *         - volume: The trade volume on that timeslot.
+     *         If no data is available for a specific date, the value will be null.
+     */
     @Override
-    public Aggregate getMostSignificantPriceDifferencesPerDay(String symbol) {
+    public  Map<String, Object>  getMostSignificantPriceDifferencesPerDay(String symbol) {
+        Query queryBySymbol = TermQuery.of(t -> t
+                .field("symbol")
+                .value(symbol))._toQuery();
+
         DateHistogramAggregation dateHistogramAggregate = DateHistogramAggregation.of(b-> b
                 .field("date")
                 .calendarInterval(CalendarInterval.Day)
                 );
 
-        String initString = "state.maxDiff = null; state.maxDoc = null;";
-        String mapString = "def diff = doc['high'].value - doc['low'].value; if (state.maxDiff == null || diff > state.maxDiff) { state.maxDiff = diff; state.maxDoc = new HashMap(); state.maxDoc.high = doc['high'].value; state.maxDoc.low = doc['low'].value; state.maxDoc.date = doc['date'].value; state.maxDoc.volume = doc['volume'].value; };";
-        String combineString = "return state;";
-        String reduceString = "def maxState = null; for (s in states) { if (maxState == null || s.maxDiff > maxState.maxDiff) { maxState = s; } } return maxState;";
+        String initString = "state.maxDiff = null; state.maxDoc = null";
+        String mapString = "def diff = doc['high'].value - doc['low'].value; if (state.maxDiff == null || diff > state.maxDiff) { state.maxDiff = diff; state.maxDoc = new HashMap(); state.maxDoc.high = doc['high'].value; state.maxDoc.low = doc['low'].value; state.maxDoc.date = doc['date'].value; state.maxDoc.volume = doc['volume'].value; }";
+        String combineString = "return state";
+        String reduceString = "def maxState = null; for (s in states) { if (maxState == null || s.maxDiff > maxState.maxDiff) { maxState = s; } } return maxState";
 
         Aggregation maxDiffAggregation = generateScriptedMetricAggregation(initString, mapString, combineString, reduceString);
-
-        SumAggregation sumAggregation = SumAggregation.of(b->b.field("volume"));
-        Aggregation sumAggregate = Aggregation.of(b->b.sum(sumAggregation));
         Aggregation finalAggregation = Aggregation.of(b-> b
                 .dateHistogram(dateHistogramAggregate)
-                .aggregations("max_diff_aggregation", sumAggregate));
-
+                .aggregations("max_diff_aggregation", maxDiffAggregation));
         BaseQuery query = NativeQuery.builder()
+                .withQuery(queryBySymbol)
                 .withAggregation("high_low_aggregation", finalAggregation)
                 .build();
 
         SearchHits<TradeOrder> searchHits = elasticSearchTemplate.search(query, TradeOrder.class);
         ElasticsearchAggregations aggregations = (ElasticsearchAggregations) searchHits.getAggregations();
         Map<String, ElasticsearchAggregation> map = aggregations.aggregationsAsMap();
-        Aggregate aggregationRes = map.get("high_low_aggregation").aggregation().getAggregate();
-        System.out.println(aggregationRes);
-        return aggregationRes;
+        DateHistogramAggregate aggregationRes =  map.get("high_low_aggregation").aggregation().getAggregate().dateHistogram();
+        List<DateHistogramBucket> lst = aggregationRes.buckets().array();
+        Map<String, Object> res = new HashMap<>();
+        for(DateHistogramBucket bucket: lst) {
+            String key = bucket.keyAsString();
+            ScriptedMetricAggregate scriptedMetric = bucket.aggregations().get("max_diff_aggregation").scriptedMetric();
+            if(scriptedMetric != null && scriptedMetric.value() != null) {
+                Map<String, Object> data = scriptedMetric.value().to(Map.class);
+                res.put(key, data);
+            } else {
+                res.put(key, null);
+            }
+        }
+        return res;
     }
 
     /**
